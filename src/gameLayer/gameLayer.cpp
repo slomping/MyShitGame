@@ -11,14 +11,42 @@
 #include <gl2d/gl2d.h>
 #include <platformTools.h>
 
+gl2d::Texture t;
+const glm::vec2 sizeOfImg{ 420,420 };
+
+
+bool checkIfCursorInRect(gl2d::Rect& Rect) {
+	std::cout << "x = " << Rect.x << " y = " << Rect.y << " a = " << Rect.a << " b = " << Rect.b << " CursorPos = " << platform::getRelMousePosition().x << " " << platform::getRelMousePosition().y << std::endl;
+	float farCx = Rect.a + Rect.x;
+	float farCy = Rect.b + Rect.y;
+	std::cout << "farCx = " << farCx << " farCy = " << farCy <<" " << platform::getRelMousePosition().x << " " << platform::getRelMousePosition().y <<" rect w = " << Rect.w << std::endl;
+	if (platform::getRelMousePosition().x <= farCx && platform::getRelMousePosition().y <= farCy && platform::getRelMousePosition().x >= Rect.x && platform::getRelMousePosition().y >= Rect.y)
+	{
+		std::cout << "Cursor in box";
+	}
+	
+	return true;
+}
+//renderer.renderRectangle({ gameData.rectPos, 100, 100 }, t);
+//void renderRectangle(const Rect transforms, const Texture texture,
+
 struct GameData
 {
-	glm::vec2 rectPos = {100,100};
+	gl2d::Rect rect = {0,0,100,100};
+	
 
 }gameData;
 
 gl2d::Renderer2D renderer;
 
+void expandRect(gl2d::Rect& Rect, float deltaTime){
+	Rect.a += deltaTime * 100;
+	Rect.b += deltaTime * 100;
+}
+void shrinkRect(gl2d::Rect& Rect, float deltaTime) {
+	Rect.a -= deltaTime * 100;
+	Rect.b -= deltaTime * 100;
+}
 bool initGame()
 {
 	//initializing stuff for the renderer
@@ -27,7 +55,7 @@ bool initGame()
 
 	//loading the saved data. Loading an entire structure like this makes savind game data very easy.
 	platform::readEntireFile(RESOURCES_PATH "gameData.data", &gameData, sizeof(GameData));
-
+	t.loadFromFile(RESOURCES_PATH "test.jpg");
 	return true;
 }
 
@@ -52,36 +80,45 @@ bool gameLogic(float deltaTime)
 #pragma endregion
 
 
-	if (platform::isButtonHeld(platform::Button::Left))
+	if (platform::isButtonHeld(platform::Button::A))
 	{
-		gameData.rectPos.x -= deltaTime * 100;
+		gameData.rect.x -= deltaTime * 100;
 	}
-	if (platform::isButtonHeld(platform::Button::Right))
+	if (platform::isButtonHeld(platform::Button::D))
 	{
-		gameData.rectPos.x += deltaTime * 100;
+		gameData.rect.x += deltaTime * 100;
+	}
+	if ( platform::isButtonHeld(platform::Button::W))
+	{
+		gameData.rect.y -= deltaTime * 100;
+	}
+	if (platform::isButtonHeld(platform::Button::S))
+	{
+		gameData.rect.y += deltaTime * 100;
 	}
 	if (platform::isButtonHeld(platform::Button::Up))
 	{
-		gameData.rectPos.y -= deltaTime * 100;
+		expandRect(gameData.rect, deltaTime);
 	}
 	if (platform::isButtonHeld(platform::Button::Down))
 	{
-		gameData.rectPos.y += deltaTime * 100;
+		shrinkRect(gameData.rect, deltaTime);
 	}
-
-	gameData.rectPos = glm::clamp(gameData.rectPos, glm::vec2{0,0}, glm::vec2{w - 100,h - 100});
-	renderer.renderRectangle({gameData.rectPos, 100, 100}, Colors_Blue);
-
+	
+	
+	
+	if (checkIfCursorInRect(gameData.rect) && platform::isLMouseHeld()) {
+		gameData.rect.x = platform::getRelMousePosition().x - gameData.rect.x;
+		gameData.rect.y = platform::getRelMousePosition().y - gameData.rect.y;
+	}
+	renderer.renderRectangle(gameData.rect, t); 
+	
+	
 
 	renderer.flush();
 
 
-	//ImGui::ShowDemoWindow();
-	ImGui::Begin("Test Imgui");
 
-	ImGui::DragFloat2("Positions", &gameData.rectPos[0]);
-
-	ImGui::End();
 
 	return true;
 #pragma endregion

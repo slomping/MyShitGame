@@ -77,11 +77,6 @@ bool gameLogic(float deltaTime)
 
 
 	//ImGui::ShowDemoWindow();
-	ImGui::Begin("Test Imgui");
-
-	ImGui::DragFloat2("Positions", &gameData.rectPos[0]);
-
-	ImGui::End();
 
 	return true;
 #pragma endregion
