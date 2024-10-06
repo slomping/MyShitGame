@@ -10,37 +10,68 @@
 #include "imfilebrowser.h"
 #include <gl2d/gl2d.h>
 #include <platformTools.h>
+#include <string.h>
 static bool isDragging = false;
 static glm::vec2 dragOffset;
 
 
 
-gl2d::Texture t;
+
 const glm::vec2 sizeOfImg{ 420,420 };
+const std::string path1 = "img1.jpg";
+const std::string path2 = "img2.jpg";
 
 
-bool checkIfCursorInRect(gl2d::Rect& Rect, glm::ivec2& mousePos){
-	//std::cout << "x = " << Rect.x << " y = " << Rect.y << " a = " << Rect.a << " b = " << Rect.b << " CursorPos = " << platform::getRelMousePosition().x << " " << platform::getRelMousePosition().y << std::endl;
-	float farCx = Rect.a + Rect.x;
-	float farCy = Rect.b + Rect.y;
 
-	//std::cout << "farCx = " << farCx << " farCy = " << farCy <<" " << platform::getRelMousePosition().x << " " << platform::getRelMousePosition().y <<" rect w = " << Rect.w << std::endl;
-	if (mousePos.x <= farCx && mousePos.y <= farCy && mousePos.x >= Rect.x && mousePos.y >= Rect.y)
-	{
-		return true;
-	}
+struct BasicObj
+{
+	gl2d::Rect Rect = { }; //init default rect
+	gl2d::Texture t;
 	
-	return false;
-}
-//renderer.renderRectangle({ gameData.rectPos, 100, 100 }, t);
-//void renderRectangle(const Rect transforms, const Texture texture,
-
+	void initRect(gl2d::Rect rect, std::string file) {
+		Rect = rect;
+		std::string path = RESOURCES_PATH;
+		std::string filename = file;
+		std::string fullpath = path + filename;
+		const char* c = fullpath.c_str();
+		t.loadFromFile(c);
+	}
+};
 struct GameData
 {
-	gl2d::Rect rect = {0,0,100,100};
 	
-
+	std::vector<BasicObj> testArr{ };
+	
 }gameData;
+
+void initArr() {
+	BasicObj rect1;
+	rect1.initRect(gl2d::Rect{ 0,0,100,100 }, path1);
+	gameData.testArr.push_back(rect1);
+	BasicObj rect2;
+	rect2.initRect(gl2d::Rect{ 50,50,100,100 },path2);
+	gameData.testArr.push_back(rect2);
+}
+
+
+std::tuple<bool, int> checkIfCursorInRect(std::vector<BasicObj>& globalarr, glm::ivec2& mousePos) {
+	//std::cout << "x = " << Rect.x << " y = " << Rect.y << " a = " << Rect.a << " b = " << Rect.b << " CursorPos = " << platform::getRelMousePosition().x << " " << platform::getRelMousePosition().y << std::endl;
+	for (int i = 0; i <= (globalarr.size() - 1);  i++) {
+		float farCx = globalarr[i].Rect.a + globalarr[i].Rect.x;
+		float farCy = globalarr[i].Rect.b + globalarr[i].Rect.y;
+
+		//std::cout << "farCx = " << farCx << " farCy = " << farCy <<" " << platform::getRelMousePosition().x << " " << platform::getRelMousePosition().y <<" rect w = " << Rect.w << std::endl;
+		if (mousePos.x <= farCx && mousePos.y <= farCy && mousePos.x >= globalarr[i].Rect.x && mousePos.y >= globalarr[i].Rect.y)
+		{
+			return std::make_tuple(true, i);
+		}
+	}
+	return std::make_tuple(false, 0);
+}
+
+
+
+
 
 gl2d::Renderer2D renderer;
 
@@ -59,8 +90,13 @@ bool initGame()
 	renderer.create();
 
 	//loading the saved data. Loading an entire structure like this makes savind game data very easy.
-	platform::readEntireFile(RESOURCES_PATH "gameData.data", &gameData, sizeof(GameData));
-	t.loadFromFile(RESOURCES_PATH "test.jpg");
+	//platform::readEntireFile(RESOURCES_PATH "gameData.data", &gameData, sizeof(GameData));
+	
+	initArr();
+	
+	
+
+	
 	return true;
 }
 
@@ -85,47 +121,46 @@ bool gameLogic(float deltaTime)
 #pragma endregion
 
 	glm::ivec2 mousePos =  platform::getRelMousePosition();
-	if (platform::isButtonHeld(platform::Button::A))
-	{
-		gameData.rect.x -= deltaTime * 100;
-	}
-	if (platform::isButtonHeld(platform::Button::D))
-	{
-		gameData.rect.x += deltaTime * 100;
-	}
-	if ( platform::isButtonHeld(platform::Button::W))
-	{
-		gameData.rect.y -= deltaTime * 100;
-	}
-	if (platform::isButtonHeld(platform::Button::S))
-	{
-		gameData.rect.y += deltaTime * 100;
-	}
-	if (platform::isButtonHeld(platform::Button::Up))
-	{
-		expandRect(gameData.rect, deltaTime);
-	}
-	if (platform::isButtonHeld(platform::Button::Down))
-	{
-		shrinkRect(gameData.rect, deltaTime);
-	}
 	
 	
 	
-	if (checkIfCursorInRect(gameData.rect, mousePos) && platform::isLMouseHeld()) {
+	std::tuple cursorCheck = checkIfCursorInRect(gameData.testArr, mousePos);
+	int i{ std::get<1>(cursorCheck) };
+	if (std::get<0>(cursorCheck) && platform::isButtonHeld(platform::Button::Up))
+	{
+		expandRect(gameData.testArr[i].Rect, deltaTime);
+	}
+	if (std::get<0>(cursorCheck) && platform::isButtonHeld(platform::Button::Down))
+	{
+		shrinkRect(gameData.testArr[i].Rect, deltaTime);
+	}
+
+
+
+
+	if (std::get<0>(cursorCheck) && platform::isLMouseHeld()) {
+		
 		if (!isDragging) {
 			// Start dragging: calculate the offset between mouse and rectangle position
-			dragOffset = glm::vec2(mousePos.x, mousePos.y) - glm::vec2(gameData.rect.x, gameData.rect.y);
+			dragOffset = glm::vec2(mousePos.x, mousePos.y) - glm::vec2(gameData.testArr[i].Rect.x, gameData.testArr[i].Rect.y);
 			isDragging = true;
 		}
 		// Update the rectangle position based on mouse movement and the drag offset
-		gameData.rect.x = mousePos.x - dragOffset.x;
-		gameData.rect.y = mousePos.y - dragOffset.y;
+		gameData.testArr[i].Rect.x = mousePos.x - dragOffset.x;
+		gameData.testArr[i].Rect.y = mousePos.y - dragOffset.y;
 	}
 	else {
 		isDragging = false; // Stop dragging when the mouse is not held
 	}
-	renderer.renderRectangle(gameData.rect, t); 
+	
+	
+	
+	
+	//render rectangles
+	for (int x = 0; x <= (gameData.testArr.size() - 1); x++) {
+		renderer.renderRectangle(gameData.testArr[x].Rect, gameData.testArr[x].t);
+	}
+	
 	
 	
 
