@@ -20,6 +20,7 @@ static glm::vec2 dragOffset;
 const glm::vec2 sizeOfImg{ 420,420 };
 const std::string path1 = "img1.jpg";
 const std::string path2 = "img2.jpg";
+gl2d::Texture bgT;
 
 
 
@@ -28,10 +29,9 @@ struct BasicObj
 	gl2d::Rect Rect = { }; //init default rect
 	gl2d::Texture t;
 	
-	void initRect(gl2d::Rect rect, std::string file) {
+	void initRect(gl2d::Rect rect, std::string filename) {
 		Rect = rect;
 		std::string path = RESOURCES_PATH;
-		std::string filename = file;
 		std::string fullpath = path + filename;
 		const char* c = fullpath.c_str();
 		t.loadFromFile(c);
@@ -39,9 +39,11 @@ struct BasicObj
 };
 struct GameData
 {
-	
+	gl2d::Rect background;
 	std::vector<BasicObj> testArr{ };
-	
+	void initBg(gl2d::Rect bg) {
+		background = bg;
+	}
 }gameData;
 
 void initArr() {
@@ -91,7 +93,7 @@ bool initGame()
 
 	//loading the saved data. Loading an entire structure like this makes savind game data very easy.
 	//platform::readEntireFile(RESOURCES_PATH "gameData.data", &gameData, sizeof(GameData));
-	
+	bgT.loadFromFile(RESOURCES_PATH "background.jpg");
 	initArr();
 	
 	
@@ -116,7 +118,9 @@ bool gameLogic(float deltaTime)
 	
 	glViewport(0, 0, w, h);
 	glClear(GL_COLOR_BUFFER_BIT); //clear screen
-
+	gameData.initBg(gl2d::Rect{ 0,0,w,h });
+	renderer.renderRectangle(gameData.background,bgT);
+	
 	renderer.updateWindowMetrics(w, h);
 #pragma endregion
 
