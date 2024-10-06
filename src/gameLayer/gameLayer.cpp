@@ -10,22 +10,27 @@
 #include "imfilebrowser.h"
 #include <gl2d/gl2d.h>
 #include <platformTools.h>
+static bool isDragging = false;
+static glm::vec2 dragOffset;
+
+
 
 gl2d::Texture t;
 const glm::vec2 sizeOfImg{ 420,420 };
 
 
-bool checkIfCursorInRect(gl2d::Rect& Rect) {
-	std::cout << "x = " << Rect.x << " y = " << Rect.y << " a = " << Rect.a << " b = " << Rect.b << " CursorPos = " << platform::getRelMousePosition().x << " " << platform::getRelMousePosition().y << std::endl;
+bool checkIfCursorInRect(gl2d::Rect& Rect, glm::ivec2& mousePos){
+	//std::cout << "x = " << Rect.x << " y = " << Rect.y << " a = " << Rect.a << " b = " << Rect.b << " CursorPos = " << platform::getRelMousePosition().x << " " << platform::getRelMousePosition().y << std::endl;
 	float farCx = Rect.a + Rect.x;
 	float farCy = Rect.b + Rect.y;
-	std::cout << "farCx = " << farCx << " farCy = " << farCy <<" " << platform::getRelMousePosition().x << " " << platform::getRelMousePosition().y <<" rect w = " << Rect.w << std::endl;
-	if (platform::getRelMousePosition().x <= farCx && platform::getRelMousePosition().y <= farCy && platform::getRelMousePosition().x >= Rect.x && platform::getRelMousePosition().y >= Rect.y)
+
+	//std::cout << "farCx = " << farCx << " farCy = " << farCy <<" " << platform::getRelMousePosition().x << " " << platform::getRelMousePosition().y <<" rect w = " << Rect.w << std::endl;
+	if (mousePos.x <= farCx && mousePos.y <= farCy && mousePos.x >= Rect.x && mousePos.y >= Rect.y)
 	{
-		std::cout << "Cursor in box";
+		return true;
 	}
 	
-	return true;
+	return false;
 }
 //renderer.renderRectangle({ gameData.rectPos, 100, 100 }, t);
 //void renderRectangle(const Rect transforms, const Texture texture,
@@ -79,7 +84,7 @@ bool gameLogic(float deltaTime)
 	renderer.updateWindowMetrics(w, h);
 #pragma endregion
 
-
+	glm::ivec2 mousePos =  platform::getRelMousePosition();
 	if (platform::isButtonHeld(platform::Button::A))
 	{
 		gameData.rect.x -= deltaTime * 100;
@@ -107,16 +112,25 @@ bool gameLogic(float deltaTime)
 	
 	
 	
-	if (checkIfCursorInRect(gameData.rect) && platform::isLMouseHeld()) {
-		gameData.rect.x = platform::getRelMousePosition().x - gameData.rect.x;
-		gameData.rect.y = platform::getRelMousePosition().y - gameData.rect.y;
+	if (checkIfCursorInRect(gameData.rect, mousePos) && platform::isLMouseHeld()) {
+		if (!isDragging) {
+			// Start dragging: calculate the offset between mouse and rectangle position
+			dragOffset = glm::vec2(mousePos.x, mousePos.y) - glm::vec2(gameData.rect.x, gameData.rect.y);
+			isDragging = true;
+		}
+		// Update the rectangle position based on mouse movement and the drag offset
+		gameData.rect.x = mousePos.x - dragOffset.x;
+		gameData.rect.y = mousePos.y - dragOffset.y;
+	}
+	else {
+		isDragging = false; // Stop dragging when the mouse is not held
 	}
 	renderer.renderRectangle(gameData.rect, t); 
 	
 	
 
 	renderer.flush();
-
+	
 
 
 
